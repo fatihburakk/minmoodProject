@@ -58,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       return 'Lütfen e-posta adresinizi girin';
                     }
                     if (!value.contains('@')) {
-                      return 'Geçerli bir e-posta adresi girin';
+                      return 'Geçerli bir e-posta adresi girinn';
                     }
                     return null;
                   },
