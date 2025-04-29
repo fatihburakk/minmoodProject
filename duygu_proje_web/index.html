@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Ana Sayfa -->
@@ -21,22 +22,27 @@
                 <a href="#features">Özellikler</a>
                 <a href="#about">Hakkımızda</a>
                 <a href="#contact">İletişim</a>
-                <button id="loginBtn" class="nav-btn login-btn">
-                    <i class="fas fa-sign-in-alt"></i>
-                    Giriş Yap
-                </button>
-                <button id="registerBtn" class="nav-btn register-btn">
-                    <i class="fas fa-user-plus"></i>
-                    Kayıt Ol
-                </button>
+                <div class="nav-buttons">
+                    <button id="loginBtn" class="nav-btn login-btn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Giriş Yap
+                    </button>
+                    <button id="registerBtn" class="nav-btn register-btn">
+                        <i class="fas fa-user-plus"></i>
+                        Kayıt Ol
+                    </button>
+                </div>
             </div>
+            <button class="mobile-menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
         </nav>
 
         <!-- Hero Section -->
         <section class="hero">
             <div class="hero-content">
                 <h1>Duygularınızı Anlayın</h1>
-                <p>Yapay zeka destekli duygu analizi ile duygularınızı daha iyi anlayın ve yönetin.</p>
+                <p>Yapay zeka destekli duygu analizi ile duygularınızı daha iyi anlayın ve yönetin. Günlük duygu takibi yapın, istatistiklerinizi görün ve kişisel gelişiminize katkıda bulunun.</p>
                 <button id="startNowBtn" class="cta-btn">
                     <i class="fas fa-rocket"></i>
                     Hemen Başla
@@ -54,17 +60,22 @@
                 <div class="feature-card">
                     <i class="fas fa-brain"></i>
                     <h3>Yapay Zeka Analizi</h3>
-                    <p>Metin tabanlı duygu analizi ile duygularınızı anlayın</p>
+                    <p>Gelişmiş yapay zeka algoritmaları ile duygularınızı anlayın ve analiz edin</p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-chart-line"></i>
                     <h3>Detaylı İstatistikler</h3>
-                    <p>Duygu değişimlerinizi grafiklerle takip edin </p>
+                    <p>Duygu değişimlerinizi grafiklerle takip edin ve kişisel gelişiminizi izleyin</p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-book"></i>
                     <h3>Duygu Günlüğü</h3>
-                    <p>Günlük duygu takibi ve notlar tutun</p>
+                    <p>Günlük duygu takibi yapın, notlar tutun ve ilerlemenizi kaydedin</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-lock"></i>
+                    <h3>Güvenli ve Özel</h3>
+                    <p>Verileriniz güvenle saklanır ve sadece size özel olarak korunur</p>
                 </div>
             </div>
         </section>
@@ -73,7 +84,7 @@
         <section id="about" class="about">
             <div class="about-content">
                 <h2>Hakkımızda</h2>
-                <p>Duygu Analizi, yapay zeka teknolojilerini kullanarak duygularınızı anlamanıza ve yönetmenize yardımcı olan bir platformdur.</p>
+                <p>Duygu Analizi, yapay zeka teknolojilerini kullanarak duygularınızı anlamanıza ve yönetmenize yardımcı olan yenilikçi bir platformdur. Amacımız, kişisel gelişiminize katkıda bulunmak ve duygusal farkındalığınızı artırmaktır.</p>
                 <div class="about-features">
                     <div class="about-feature">
                         <i class="fas fa-check-circle"></i>
@@ -86,6 +97,10 @@
                     <div class="about-feature">
                         <i class="fas fa-check-circle"></i>
                         <span>7/24 Erişim</span>
+                    </div>
+                    <div class="about-feature">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Yapay Zeka Destekli</span>
                     </div>
                 </div>
             </div>
@@ -109,12 +124,27 @@
                         <span>İstanbul, Türkiye</span>
                     </div>
                     <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
                     </div>
                 </div>
+                <form class="contact-form">
+                    <div class="form-group">
+                        <input type="text" placeholder="Adınız" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" placeholder="E-posta Adresiniz" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea placeholder="Mesajınız" required></textarea>
+                    </div>
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-paper-plane"></i>
+                        Gönder
+                    </button>
+                </form>
             </div>
         </section>
 
@@ -132,6 +162,16 @@
                     <a href="#">Gizlilik Politikası</a>
                     <a href="#">Kullanım Şartları</a>
                     <a href="#">KVKK</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Bülten</h3>
+                    <p>Yeniliklerden haberdar olun</p>
+                    <form class="newsletter-form">
+                        <input type="email" placeholder="E-posta adresiniz">
+                        <button type="submit">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
                 </div>
             </div>
             <div class="footer-bottom">
@@ -249,82 +289,98 @@
                         </button>
                         <button class="emotion-btn" data-emotion="angry">
                             <i class="fas fa-angry"></i>
-                            <span>Kızgın</span>
+                            <span>Öfkeli</span>
                         </button>
                         <button class="emotion-btn" data-emotion="fear">
                             <i class="fas fa-fear"></i>
-                            <span>Korku</span>
+                            <span>Korkmuş</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Motivasyon Kartı -->
+                <!-- Motivasyon Sözü -->
                 <div class="motivation-quote">
                     <h3>Günün Motivasyon Sözü</h3>
-                    <p id="dailyQuote"></p>
+                    <p id="motivationQuote"></p>
                 </div>
             </div>
 
             <!-- Duygularım Sayfası -->
             <div id="emotions" class="content-section">
-                <h2>Duygu Geçmişim</h2>
-                <div class="emotion-history">
-                    <!-- Duygu geçmişi buraya dinamik olarak eklenecek -->
+                <h2>Duygu Geçmişi</h2>
+                <div class="emotion-timeline">
+                    <!-- Duygu geçmişi burada listelenecek -->
                 </div>
             </div>
 
             <!-- Analiz Sayfası -->
             <div id="analysis" class="content-section">
-                <h2>Duygu Analizi İstatistikleri</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>En Sık Duygu</h3>
-                        <p id="mostFrequentEmotion">-</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Ortalama Duygu Seviyesi</h3>
-                        <p id="averageEmotion">-</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Duygu Değişim Grafiği</h3>
+                <h2>Duygu Analizi</h2>
+                <div class="analysis-container">
+                    <div class="chart-container">
                         <canvas id="emotionTrendChart"></canvas>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>En Sık Duygu</h3>
+                            <p id="mostFrequentEmotion">-</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Ortalama Mutluluk</h3>
+                            <p id="averageHappiness">-</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Duygu Değişimi</h3>
+                            <p id="emotionChange">-</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Günlük Sayfası -->
             <div id="journal" class="content-section">
-                <h2>Duygu Günlüğüm</h2>
-                <div class="journal-entry">
-                    <textarea id="journalText" placeholder="Bugün neler hissettiniz?"></textarea>
-                    <button class="save-journal-btn">Kaydet</button>
-                </div>
-                <div class="journal-history" id="journalHistory">
-                    <!-- Günlük geçmişi buraya dinamik olarak eklenecek -->
+                <h2>Duygu Günlüğü</h2>
+                <div class="journal-container">
+                    <div class="journal-entry">
+                        <textarea id="journalText" placeholder="Bugün neler yaşadınız? Duygularınızı paylaşın..."></textarea>
+                        <button class="save-journal-btn" id="saveJournalBtn">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                    </div>
+                    <div class="journal-history">
+                        <!-- Günlük geçmişi burada listelenecek -->
+                    </div>
                 </div>
             </div>
 
             <!-- Ayarlar Sayfası -->
             <div id="settings" class="content-section">
                 <h2>Ayarlar</h2>
-                <div class="settings-form">
-                    <div class="form-group">
-                        <label>Profil Bilgileri</label>
-                        <input type="text" id="userNameInput" placeholder="Ad Soyad">
-                        <input type="email" id="userEmailInput" placeholder="E-posta">
-                    </div>
-                    <div class="form-group">
-                        <label>Bildirim Ayarları</label>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="dailyReminder">
-                            <label for="dailyReminder">Günlük Hatırlatıcı</label>
+                <div class="settings-container">
+                    <form class="settings-form">
+                        <div class="form-group">
+                            <label>Ad Soyad</label>
+                            <input type="text" id="settingsName" placeholder="Adınız Soyadınız">
                         </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="weeklyReport">
-                            <label for="weeklyReport">Haftalık Rapor</label>
+                        <div class="form-group">
+                            <label>E-posta</label>
+                            <input type="email" id="settingsEmail" placeholder="E-posta Adresiniz">
                         </div>
-                    </div>
-                    <button class="save-settings-btn">Ayarları Kaydet</button>
+                        <div class="form-group">
+                            <label>Bildirimler</label>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="emailNotifications">
+                                <label for="emailNotifications">E-posta Bildirimleri</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="pushNotifications">
+                                <label for="pushNotifications">Push Bildirimleri</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="save-settings-btn">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -334,22 +390,16 @@
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            
-            <!-- Giriş Formu -->
-            <div id="loginForm" class="auth-form active">
+            <div id="loginForm" class="auth-form">
                 <h2>Giriş Yap</h2>
                 <form>
                     <div class="form-group">
-                        <label for="loginEmail">E-posta</label>
-                        <input type="email" id="loginEmail" required>
-                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="loginEmail" placeholder="E-posta" required>
                     </div>
                     <div class="form-group">
-                        <label for="loginPassword">Şifre</label>
-                        <input type="password" id="loginPassword" required>
-                        <i class="fas fa-lock"></i>
+                        <input type="password" id="loginPassword" placeholder="Şifre" required>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Giriş Yap</button>
+                    <button type="submit" class="btn btn-primary">Giriş Yap</button>
                 </form>
                 <div class="auth-links">
                     <a href="#" id="forgotPasswordBtn">Şifremi Unuttum</a>
@@ -357,47 +407,35 @@
                 </div>
             </div>
 
-            <!-- Kayıt Formu -->
             <div id="registerForm" class="auth-form">
-                <h2>Hesap Oluştur</h2>
+                <h2>Kayıt Ol</h2>
                 <form>
                     <div class="form-group">
-                        <label for="registerName">Ad Soyad</label>
-                        <input type="text" id="registerName" required>
-                        <i class="fas fa-user"></i>
+                        <input type="text" id="registerName" placeholder="Ad Soyad" required>
                     </div>
                     <div class="form-group">
-                        <label for="registerEmail">E-posta</label>
-                        <input type="email" id="registerEmail" required>
-                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="registerEmail" placeholder="E-posta" required>
                     </div>
                     <div class="form-group">
-                        <label for="registerPassword">Şifre</label>
-                        <input type="password" id="registerPassword" required>
-                        <i class="fas fa-lock"></i>
+                        <input type="password" id="registerPassword" placeholder="Şifre" required>
                     </div>
                     <div class="form-group">
-                        <label for="confirmPassword">Şifre Tekrar</label>
-                        <input type="password" id="confirmPassword" required>
-                        <i class="fas fa-lock"></i>
+                        <input type="password" id="confirmPassword" placeholder="Şifre Tekrar" required>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Kayıt Ol</button>
+                    <button type="submit" class="btn btn-primary">Kayıt Ol</button>
                 </form>
                 <div class="auth-links">
                     <a href="#" id="backToLoginBtn">Giriş Yap</a>
                 </div>
             </div>
 
-            <!-- Şifre Sıfırlama Formu -->
             <div id="forgotPasswordForm" class="auth-form">
                 <h2>Şifre Sıfırlama</h2>
                 <form>
                     <div class="form-group">
-                        <label for="resetEmail">E-posta</label>
-                        <input type="email" id="resetEmail" required>
-                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="resetEmail" placeholder="E-posta" required>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Şifre Sıfırlama Linki Gönder</button>
+                    <button type="submit" class="btn btn-primary">Şifremi Sıfırla</button>
                 </form>
                 <div class="auth-links">
                     <a href="#" id="backToLoginBtn2">Giriş Yap</a>
@@ -409,4 +447,5 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="app.js"></script>
 </body>
-</html></html>
+</html>
+

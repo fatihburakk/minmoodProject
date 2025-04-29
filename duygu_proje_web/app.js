@@ -16,7 +16,6 @@ let motivationQuotes = [
     "Hedeflerine ulaşmak için her gün bir adım at.",
     "En karanlık gece bile güneşin doğuşuyla biter.",
     "Kendini sev ve değer ver."
-    
 ];
 let currentUser = null;
 
@@ -34,6 +33,9 @@ const backToLoginBtn2 = document.getElementById('backToLoginBtn2');
 const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
 const startNowBtn = document.getElementById('startNowBtn');
 const logoutBtn = document.getElementById('logoutBtn');
+const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+const navLinks = document.querySelector('.nav-links');
+const menuItems = document.querySelectorAll('.menu-items li');
 
 // Form Elements
 const loginEmail = document.getElementById('loginEmail');
@@ -84,6 +86,12 @@ forgotPasswordBtn.addEventListener('click', () => {
     showForm('forgot');
 });
 
+// Mobil menü toggle
+mobileMenuToggle.addEventListener('click', () => {
+    navLinks.classList.toggle('active');
+    mobileMenuToggle.classList.toggle('active');
+});
+
 // Form gönderimi
 loginForm.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -91,14 +99,8 @@ loginForm.querySelector('form').addEventListener('submit', async (e) => {
     const password = loginPassword.value;
 
     try {
-        // Geçici olarak localStorage kullanıyoruz
-        const response = {
-            token: 'dummy_token',
-            user: {
-                name: email.split('@')[0],
-                email: email
-            }
-        };
+        // API çağrısı simülasyonu
+        const response = await simulateApiCall('login', { email, password });
         
         localStorage.setItem('token', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
@@ -125,14 +127,8 @@ registerForm.querySelector('form').addEventListener('submit', async (e) => {
     }
 
     try {
-        // Geçici olarak localStorage kullanıyoruz
-        const response = {
-            token: 'dummy_token',
-            user: {
-                name: name,
-                email: email
-            }
-        };
+        // API çağrısı simülasyonu
+        const response = await simulateApiCall('register', { name, email, password });
         
         localStorage.setItem('token', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
@@ -151,11 +147,80 @@ forgotPasswordForm.querySelector('form').addEventListener('submit', async (e) =>
     const email = resetEmail.value;
 
     try {
-        // Geçici olarak sadece başarılı mesajı gösteriyoruz
+        // API çağrısı simülasyonu
+        await simulateApiCall('resetPassword', { email });
         showSuccess('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi');
         showForm('login');
     } catch (error) {
         showError('Şifre sıfırlama işlemi sırasında bir hata oluştu');
+    }
+});
+
+// Duygu analizi
+document.getElementById('analyzeBtn').addEventListener('click', async () => {
+    const text = document.getElementById('emotionText').value;
+    if (!text.trim()) {
+        showError('Lütfen bir metin girin');
+        return;
+    }
+
+    try {
+        // API çağrısı simülasyonu
+        const results = await simulateApiCall('analyzeEmotion', { text });
+        updateEmotionResults(results);
+        showSuccess('Analiz tamamlandı');
+    } catch (error) {
+        showError('Analiz sırasında bir hata oluştu');
+    }
+});
+
+// Hızlı duygu girişi
+document.querySelectorAll('.emotion-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const emotion = btn.dataset.emotion;
+        addQuickEmotion(emotion);
+    });
+});
+
+// Günlük kaydetme
+document.getElementById('saveJournalBtn').addEventListener('click', async () => {
+    const text = document.getElementById('journalText').value;
+    if (!text.trim()) {
+        showError('Lütfen bir günlük girişi yapın');
+        return;
+    }
+
+    try {
+        // API çağrısı simülasyonu
+        await simulateApiCall('saveJournal', { text });
+        document.getElementById('journalText').value = '';
+        showSuccess('Günlük kaydedildi');
+        updateJournalHistory();
+    } catch (error) {
+        showError('Günlük kaydedilirken bir hata oluştu');
+    }
+});
+
+// Ayarları kaydetme
+document.querySelector('.settings-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('settingsName').value;
+    const email = document.getElementById('settingsEmail').value;
+    const emailNotifications = document.getElementById('emailNotifications').checked;
+    const pushNotifications = document.getElementById('pushNotifications').checked;
+
+    try {
+        // API çağrısı simülasyonu
+        await simulateApiCall('updateSettings', {
+            name,
+            email,
+            emailNotifications,
+            pushNotifications
+        });
+        showSuccess('Ayarlar kaydedildi');
+        updateUserInfo({ name, email });
+    } catch (error) {
+        showError('Ayarlar kaydedilirken bir hata oluştu');
     }
 });
 
@@ -210,18 +275,197 @@ function showSuccess(message) {
     }
 }
 
-// Check if user is logged in
-function checkAuth() {
-    const user = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    return user && token;
+// API çağrısı simülasyonu
+async function simulateApiCall(endpoint, data) {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            switch (endpoint) {
+                case 'login':
+                    resolve({
+                        token: 'dummy_token',
+                        user: {
+                            name: data.email.split('@')[0],
+                            email: data.email
+                        }
+                    });
+                    break;
+                case 'register':
+                    resolve({
+                        token: 'dummy_token',
+                        user: {
+                            name: data.name,
+                            email: data.email
+                        }
+                    });
+                    break;
+                case 'analyzeEmotion':
+                    resolve({
+                        happiness: Math.random() * 100,
+                        sadness: Math.random() * 100,
+                        anger: Math.random() * 100,
+                        fear: Math.random() * 100
+                    });
+                    break;
+                default:
+                    resolve({ success: true });
+            }
+        }, 1000);
+    });
 }
 
-// Logout function
-function logout() {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    window.location.reload();
+// Duygu sonuçlarını güncelleme
+function updateEmotionResults(results) {
+    document.getElementById('happinessScore').textContent = `${Math.round(results.happiness)}%`;
+    document.getElementById('sadnessScore').textContent = `${Math.round(results.sadness)}%`;
+    document.getElementById('angerScore').textContent = `${Math.round(results.anger)}%`;
+    document.getElementById('fearScore').textContent = `${Math.round(results.fear)}%`;
+
+    document.getElementById('analysisResults').style.display = 'block';
+    updateEmotionChart(results);
+}
+
+// Duygu grafiğini güncelleme
+function updateEmotionChart(results) {
+    if (emotionChart) {
+        emotionChart.destroy();
+    }
+
+    const ctx = document.getElementById('emotionChart').getContext('2d');
+    emotionChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Mutluluk', 'Üzüntü', 'Öfke', 'Korku'],
+            datasets: [{
+                label: 'Duygu Analizi',
+                data: [
+                    results.happiness,
+                    results.sadness,
+                    results.anger,
+                    results.fear
+                ],
+                backgroundColor: 'rgba(74, 144, 226, 0.2)',
+                borderColor: 'rgba(74, 144, 226, 1)',
+                pointBackgroundColor: 'rgba(74, 144, 226, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(74, 144, 226, 1)'
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+// Hızlı duygu ekleme
+function addQuickEmotion(emotion) {
+    const emotions = {
+        happy: { text: 'Mutlu', icon: 'fa-smile', color: '#50c878' },
+        sad: { text: 'Üzgün', icon: 'fa-sad-tear', color: '#4a90e2' },
+        angry: { text: 'Öfkeli', icon: 'fa-angry', color: '#e74c3c' },
+        fear: { text: 'Korkmuş', icon: 'fa-fear', color: '#f1c40f' }
+    };
+
+    const emotionData = emotions[emotion];
+    if (!emotionData) return;
+
+    const emotionEntry = {
+        type: emotion,
+        text: emotionData.text,
+        icon: emotionData.icon,
+        color: emotionData.color,
+        timestamp: new Date()
+    };
+
+    emotions.push(emotionEntry);
+    updateEmotionTimeline();
+    showSuccess(`${emotionData.text} olarak işaretlendi`);
+}
+
+// Duygu zaman çizelgesini güncelleme
+function updateEmotionTimeline() {
+    const timeline = document.querySelector('.emotion-timeline');
+    timeline.innerHTML = '';
+
+    emotions.slice().reverse().forEach(emotion => {
+        const entry = document.createElement('div');
+        entry.className = 'timeline-entry';
+        entry.innerHTML = `
+            <div class="timeline-icon" style="background-color: ${emotion.color}">
+                <i class="fas ${emotion.icon}"></i>
+            </div>
+            <div class="timeline-content">
+                <h4>${emotion.text}</h4>
+                <p>${emotion.timestamp.toLocaleString()}</p>
+            </div>
+        `;
+        timeline.appendChild(entry);
+    });
+}
+
+// Günlük geçmişini güncelleme
+function updateJournalHistory() {
+    const history = document.querySelector('.journal-history');
+    history.innerHTML = '';
+
+    journalEntries.slice().reverse().forEach(entry => {
+        const journalEntry = document.createElement('div');
+        journalEntry.className = 'journal-entry-item';
+        journalEntry.innerHTML = `
+            <div class="journal-entry-header">
+                <h4>${entry.timestamp.toLocaleDateString()}</h4>
+                <span>${entry.timestamp.toLocaleTimeString()}</span>
+            </div>
+            <p>${entry.text}</p>
+        `;
+        history.appendChild(journalEntry);
+    });
+}
+
+// Kullanıcı bilgilerini güncelleme
+function updateUserInfo(user) {
+    document.getElementById('userName').textContent = user.name;
+    currentUser = user;
+}
+
+// Sayfa bölümlerini gösterme
+function showSection(sectionId) {
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    document.getElementById(sectionId).classList.add('active');
+
+    menuItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.section === sectionId) {
+            item.classList.add('active');
+        }
+    });
+}
+
+// Uygulama container'ını gösterme
+function showAppContainer() {
+    document.getElementById('landingPage').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'flex';
+    showSection('dashboard');
+    updateMotivationQuote();
+}
+
+// Landing page'i gösterme
+function showLandingPage() {
+    document.getElementById('landingPage').style.display = 'block';
+    document.getElementById('appContainer').style.display = 'none';
+}
+
+// Motivasyon sözünü güncelleme
+function updateMotivationQuote() {
+    const quote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
+    document.getElementById('motivationQuote').textContent = quote;
 }
 
 // Initialize
@@ -246,185 +490,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('currentDate').textContent = currentDate;
 
     // Menü işlemleri
-    const menuItems = document.querySelectorAll('.menu-items li');
     menuItems.forEach(item => {
-        item.addEventListener('click', () => {
-            if (item.id === 'logoutBtn') {
-                logout();
-            } else {
-                const section = item.dataset.section;
-                showSection(section);
-                menuItems.forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-            }
-        });
-    });
-
-    // Duygu analizi işlemleri
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    const emotionText = document.getElementById('emotionText');
-    const analysisResults = document.getElementById('analysisResults');
-    const emotionChart = document.getElementById('emotionChart');
-
-    analyzeBtn.addEventListener('click', () => {
-        const text = emotionText.value;
-        if (text.trim()) {
-            // Geçici olarak rastgele sonuçlar gösteriyoruz
-            const results = {
-                happiness: Math.floor(Math.random() * 100),
-                sadness: Math.floor(Math.random() * 100),
-                anger: Math.floor(Math.random() * 100),
-                fear: Math.floor(Math.random() * 100)
-            };
-            
-            document.getElementById('happinessScore').textContent = `${results.happiness}%`;
-            document.getElementById('sadnessScore').textContent = `${results.sadness}%`;
-            document.getElementById('angerScore').textContent = `${results.anger}%`;
-            document.getElementById('fearScore').textContent = `${results.fear}%`;
-
-            // Grafik güncelleme
-            updateChart(results);
-            analysisResults.style.display = 'block';
+        if (item.id === 'logoutBtn') {
+            item.addEventListener('click', logout);
         } else {
-            showError('Lütfen bir metin girin');
-        }
-    });
-
-    // Hızlı duygu girişi
-    const emotionButtons = document.querySelectorAll('.emotion-btn');
-    emotionButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const emotion = button.dataset.emotion;
-            const emotions = {
-                happy: 'Mutlu',
-                sad: 'Üzgün',
-                angry: 'Kızgın',
-                fear: 'Korku'
-            };
-            emotionText.value = `Bugün ${emotions[emotion]} hissediyorum.`;
-            analyzeBtn.click();
-        });
-    });
-
-    // Günlük kaydetme
-    const saveJournalBtn = document.querySelector('.save-journal-btn');
-    const journalText = document.getElementById('journalText');
-    const journalHistory = document.getElementById('journalHistory');
-
-    saveJournalBtn.addEventListener('click', () => {
-        const text = journalText.value;
-        if (text.trim()) {
-            const date = new Date().toLocaleDateString('tr-TR');
-            const entry = document.createElement('div');
-            entry.className = 'journal-entry';
-            entry.innerHTML = `
-                <h3>${date}</h3>
-                <p>${text}</p>
-            `;
-            journalHistory.insertBefore(entry, journalHistory.firstChild);
-            journalText.value = '';
-            showSuccess('Günlük kaydedildi');
-        } else {
-            showError('Lütfen bir metin girin');
-        }
-    });
-
-    // Ayarları kaydetme
-    const saveSettingsBtn = document.querySelector('.save-settings-btn');
-    const userNameInput = document.getElementById('userNameInput');
-    const userEmailInput = document.getElementById('userEmailInput');
-    const dailyReminder = document.getElementById('dailyReminder');
-    const weeklyReport = document.getElementById('weeklyReport');
-
-    saveSettingsBtn.addEventListener('click', () => {
-        const settings = {
-            name: userNameInput.value,
-            email: userEmailInput.value,
-            dailyReminder: dailyReminder.checked,
-            weeklyReport: weeklyReport.checked
-        };
-        localStorage.setItem('settings', JSON.stringify(settings));
-        showSuccess('Ayarlar kaydedildi');
-    });
-
-    // Mobil menü işlemleri
-    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
-    const menuList = document.querySelector('.menu-items');
-
-    mobileMenuToggle.addEventListener('click', () => {
-        menuList.classList.toggle('active');
-    });
-
-    // Menü öğesine tıklandığında menüyü kapat
-    menuList.querySelectorAll('li').forEach(item => {
-        item.addEventListener('click', () => {
-            menuList.classList.remove('active');
-        });
-    });
-
-    // Sayfa dışına tıklandığında menüyü kapat
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.side-menu')) {
-            menuList.classList.remove('active');
+            item.addEventListener('click', () => {
+                showSection(item.dataset.section);
+            });
         }
     });
 });
 
-// Modal Functions
-function showAppContainer() {
-    document.getElementById('landingPage').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'flex';
-}
-
-function showLandingPage() {
-    document.getElementById('landingPage').style.display = 'block';
-    document.getElementById('appContainer').style.display = 'none';
-}
-
-function updateUserInfo(user) {
-    document.getElementById('userName').textContent = user.name;
-}
-
-function showSection(sectionId) {
-    const sections = document.querySelectorAll('.content-section');
-    sections.forEach(section => {
-        section.classList.remove('active');
-    });
-    document.getElementById(sectionId).classList.add('active');
-}
-
-function updateChart(results) {
-    const ctx = document.getElementById('emotionChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Mutluluk', 'Üzüntü', 'Öfke', 'Korku'],
-            datasets: [{
-                label: 'Duygu Analizi Sonuçları',
-                data: [results.happiness, results.sadness, results.anger, results.fear],
-                backgroundColor: [
-                    'rgba(108, 92, 231, 0.5)',
-                    'rgba(168, 164, 230, 0.5)',
-                    'rgba(0, 184, 148, 0.5)',
-                    'rgba(128, 113, 86, 0.5)'
-                ],
-                borderColor: [
-                    'rgb(108, 92, 231)',
-                    'rgb(168, 164, 230)',
-                    'rgb(49, 110, 98)',
-                    'rgb(253, 203, 110)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
-                }
-            }
-        }
-    });
+// Logout function
+function logout() {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    window.location.reload();
 }
