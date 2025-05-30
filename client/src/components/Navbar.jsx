@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import mindmoodLogo from '../assets/minmood.png';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -19,29 +20,45 @@ export default function Navbar() {
     navigate('/');
   };
 
+  const scrollToSection = (sectionId) => {
+    navigate('/');
+    setTimeout(() => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
   return (
     <nav className="bg-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="text-2xl font-bold text-indigo-600">
-                Logo
+              <Link to="/" className="flex items-center">
+                <img src={mindmoodLogo} alt="MindMood Logo" className="h-10 w-10 rounded-full" />
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               <Link to="/" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-600">
                 Ana Sayfa
               </Link>
-              <Link to="/#features" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-600">
+              <button 
+                onClick={() => scrollToSection('features')}
+                className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-600"
+              >
                 Özellikler
-              </Link>
-              <Link to="/#about" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-600">
+              </button>
+              <Link to="/about" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-600">
                 Hakkımızda
               </Link>
-              <Link to="/#contact" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-600">
+              <button 
+                onClick={() => scrollToSection('contact')}
+                className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-600"
+              >
                 İletişim
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -108,15 +125,27 @@ export default function Navbar() {
             <Link to="/" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">
               Ana Sayfa
             </Link>
-            <Link to="/#features" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">
+            <button 
+              onClick={() => {
+                setIsMenuOpen(false);
+                scrollToSection('features');
+              }}
+              className="block w-full text-left pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+            >
               Özellikler
-            </Link>
-            <Link to="/#about" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">
+            </button>
+            <Link to="/about" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">
               Hakkımızda
             </Link>
-            <Link to="/#contact" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">
+            <button 
+              onClick={() => {
+                setIsMenuOpen(false);
+                scrollToSection('contact');
+              }}
+              className="block w-full text-left pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+            >
               İletişim
-            </Link>
+            </button>
           </div>
           <div className="pt-4 pb-3 border-t border-gray-200">
             {user ? (

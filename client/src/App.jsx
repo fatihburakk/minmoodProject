@@ -4,11 +4,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import About from './pages/About';
 
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Features from './components/Features';
-import About from './components/About';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 
@@ -29,7 +29,6 @@ const Home = () => {
       <main>
         <Hero />
         <Features />
-        <About />
         <Contact />
       </main>
       <Footer />
@@ -47,6 +46,9 @@ export default function App() {
         {/* Auth sayfaları */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        
+        {/* Hakkımızda sayfası */}
+        <Route path="/about" element={<About />} />
         
         {/* Korumalı dashboard */}
         <Route

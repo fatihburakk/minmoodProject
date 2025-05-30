@@ -18,6 +18,8 @@ import {
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import mindmoodLogo from '../assets/minmood.png';
+import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -36,6 +38,38 @@ const user = JSON.parse(localStorage.getItem('user'));
 const today = new Date();
 const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+// Duygu etiketlerini Türkçe'ye çevirme
+const emotionLabels = {
+  'admiration': 'Hayranlık',
+  'amusement': 'Eğlence',
+  'anger': 'Öfke',
+  'annoyance': 'Rahatsızlık',
+  'approval': 'Onay',
+  'caring': 'İlgili',
+  'confusion': 'Kafa Karışıklığı',
+  'curiosity': 'Merak',
+  'desire': 'İstek',
+  'disappointment': 'Hayal Kırıklığı',
+  'disapproval': 'Onaylamama',
+  'disgust': 'İğrenme',
+  'embarrassment': 'Utangaçlık',
+  'excitement': 'Heyecan',
+  'fear': 'Korku',
+  'gratitude': 'Minnettarlık',
+  'grief': 'Keder',
+  'joy': 'Mutluluk',
+  'love': 'Sevgi',
+  'nervousness': 'Gerginlik',
+  'optimism': 'İyimserlik',
+  'pride': 'Gurur',
+  'realization': 'Farkındalık',
+  'relief': 'Rahatlık',
+  'remorse': 'Pişmanlık',
+  'sadness': 'Üzüntü',
+  'surprise': 'Şaşkınlık',
+  'neutral': 'Nötr'
+};
 
 const dailyQuotes = [
   "Duygularınızı kabul edin, onlar sizin rehberinizdir.",
@@ -66,15 +100,15 @@ const getDailyQuote = () => {
 
 // Kullanıcıyı güvenli şekilde al
 async function getCurrentUserId() {
-  if (supabase.auth.getUser) {
-    const { data } = await supabase.auth.getUser();
-    return data?.user?.id || null;
-  } else if (supabase.auth.user) {
-    const user = supabase.auth.user();
-    return user?.id || null;
-  } else {
-    const user = JSON.parse(localStorage.getItem('user'));
-    return user?.id || null;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      return user.id;
+    }
+    return null;
+  } catch (error) {
+    console.error('Kullanıcı ID alınamadı:', error);
+    return null;
   }
 }
 
@@ -112,6 +146,7 @@ export default function Dashboard() {
   const [isDiaryListening, setIsDiaryListening] = useState(false);
   const [diaryRecognition, setDiaryRecognition] = useState(null);
   const [currentQuote, setCurrentQuote] = useState(getDailyQuote());
+  const [dailyEmotions, setDailyEmotions] = useState([]);
 
   useEffect(() => {
     if (activeTab === 'diary') {
@@ -193,6 +228,97 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    let channel;
+    let isMounted = true;
+
+    const setupRealtime = async () => {
+      try {
+        const userId = await getCurrentUserId();
+        if (!userId) {
+          console.error('Kullanıcı ID bulunamadı');
+          return;
+        }
+
+        // Önceki kanalı temizle
+        if (channel) {
+          await supabase.removeChannel(channel);
+        }
+
+        // Yeni kanal oluştur
+        channel = supabase
+          .channel('diary-realtime')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'diaries',
+              filter: `user_id=eq.${userId}`
+            },
+            (payload) => {
+              console.log('Günlük realtime değişiklik:', payload);
+              if (!isMounted) return;
+
+              // Silme işlemi
+              if (payload.eventType === 'DELETE') {
+                console.log('Günlük silme işlemi algılandı:', payload.old.id);
+                setDiaryList(prev => prev.filter(item => item.id !== payload.old.id));
+                if (selectedDiary && selectedDiary.id === payload.old.id) {
+                  setSelectedDiary(null);
+                  setModalOpen(false);
+                }
+              }
+              // Ekleme işlemi
+              else if (payload.eventType === 'INSERT') {
+                console.log('Günlük ekleme işlemi algılandı:', payload.new);
+                setDiaryList(prev => [payload.new, ...prev]);
+              }
+              // Güncelleme işlemi
+              else if (payload.eventType === 'UPDATE') {
+                console.log('Günlük güncelleme işlemi algılandı:', payload.new);
+                setDiaryList(prev => 
+                  prev.map(item => item.id === payload.new.id ? payload.new : item)
+                );
+                if (selectedDiary && selectedDiary.id === payload.new.id) {
+                  setSelectedDiary(payload.new);
+                }
+              }
+            }
+          )
+          .subscribe((status) => {
+            console.log('Günlük subscription status:', status);
+            if (status === 'SUBSCRIBED') {
+              // İlk yükleme
+              getCurrentUserId().then(userId => {
+                if (userId) {
+                  getDiaries(userId).then(({ data }) => {
+                    setDiaryList(data || []);
+                  });
+                }
+              });
+            }
+          });
+
+      } catch (error) {
+        console.error('Günlük realtime subscription hatası:', error);
+      }
+    };
+
+    // Günlük sekmesi aktifse subscription'ı başlat
+    if (activeTab === 'diary') {
+      setupRealtime();
+    }
+
+    // Cleanup
+    return () => {
+      isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [activeTab]);
+
   const toggleListening = () => {
     if (!recognition) {
       alert('Tarayıcınız ses tanıma özelliğini desteklemiyor.');
@@ -270,24 +396,51 @@ export default function Dashboard() {
   };
 
   const handleDiarySubmit = async () => {
-    if (diaryContent.trim() !== '') {
-      const now = new Date();
-      const dateStr = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth()+1).toString().padStart(2, '0')}.${now.getFullYear()}`;
-      const { error } = await createDiary(diaryContent, user.id);
-      if (!error) {
-        getDiaries(user.id).then(({ data }) => {
-          setDiaryList(data || []);
-        });
-        setDiaryContent('');
+    if (!diaryContent.trim()) {
+      alert('Lütfen bir metin girin.');
+      return;
+    }
+
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        console.error('Kullanıcı ID bulunamadı');
+        return;
       }
+
+      const { error } = await createDiary(diaryContent, userId);
+      if (error) {
+        console.error('Günlük kaydedilirken hata:', error);
+        alert('Günlük kaydedilirken bir hata oluştu.');
+        return;
+      }
+
+      // Önce state'i güncelle
+      setDiaryContent('');
+      
+      // Sonra verileri yeniden yükle
+      const { data } = await getDiaries(userId);
+      if (data) {
+        setDiaryList(data);
+      }
+      
+      // En son aktif tab'i güncelle
+      setActiveTab('diary');
+    } catch (error) {
+      console.error('Günlük kaydedilirken beklenmeyen hata:', error);
+      alert('Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');
     }
   };
 
   const handleDeleteDiary = async (id) => {
-    await deleteDiary(id, user.id);
-    getDiaries(user.id).then(({ data }) => {
-      setDiaryList(data || []);
-    });
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      console.error('Kullanıcı ID bulunamadı');
+      return;
+    }
+    await deleteDiary(id, userId);
+    const { data } = await getDiaries(userId);
+    setDiaryList(data || []);
   };
 
   const handleEditDiary = (entry) => {
@@ -299,14 +452,19 @@ export default function Dashboard() {
 
   const handleUpdateDiary = async () => {
     try {
-      const { error } = await updateDiary(selectedDiary.id, editContent, user.id);
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        console.error('Kullanıcı ID bulunamadı');
+        return;
+      }
+      const { error } = await updateDiary(selectedDiary.id, editContent, userId);
       if (error) {
         console.error('Günlük güncellenirken hata:', error);
         return;
       }
       setEditMode(false);
       setModalOpen(false);
-      const { data } = await getDiaries(user.id);
+      const { data } = await getDiaries(userId);
       setDiaryList(data || []);
     } catch (error) {
       console.error('Günlük güncellenirken beklenmeyen hata:', error);
@@ -364,33 +522,78 @@ export default function Dashboard() {
     try {
       console.log('Duygu analizi isteği gönderiliyor:', emotionText);
       
-      const response = await fetch("/api/duygu-analiz/analyze", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json"
+      // Türkçe metni MyMemory API ile İngilizce'ye çevir
+      console.log('MyMemory Translation API isteği gönderiliyor...');
+      const translateResponse = await fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(emotionText) + '&langpair=tr|en');
+      const translateData = await Promise.race([
+        translateResponse.json(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('MyMemory API Timeout')), 10000))
+      ]);
+      
+      let translatedText = translateData.responseData.translatedText;
+      if (!translatedText) {
+        console.log('MyMemory çeviri başarısız, orijinal metin kullanılıyor:', emotionText);
+        translatedText = emotionText;
+      }
+
+      console.log('Çevrilen metin:', translatedText);
+
+      // Hugging Face duygu analizi
+      const hfResponse = await fetch('https://api-inference.huggingface.co/models/SamLowe/roberta-base-go_emotions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer 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',
         },
-        body: JSON.stringify({ text: emotionText })
+        body: JSON.stringify({ inputs: translatedText }),
       });
 
-      console.log('Sunucu yanıtı:', response.status);
-      const data = await response.json();
-      console.log('Sunucu yanıt verisi:', data);
+      const hfData = await Promise.race([
+        hfResponse.json(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Hugging Face API Timeout')), 20000))
+      ]);
+      console.log('Hugging Face Raw Data:', hfData);
 
-      if (!response.ok) {
-        throw new Error(data.error || data.details || 'Analiz başarısız oldu');
+      // Duyguları filtrele ve sırala (0.1 eşik değeri ile)
+      const filteredResults = hfData[0]
+        .filter(emotion => emotion.score > 0.1)
+        .sort((a, b) => b.score - a.score);
+
+      // Duygu etiketlerini Türkçe'ye çevir
+      const translatedResults = filteredResults.map(result => ({
+        label: emotionLabels[result.label] || result.label,
+        score: result.score,
+        intensity: result.score * 100
+      }));
+
+      // Detaylı açıklama oluştur
+      let detail = '';
+      if (translatedResults.length === 0) {
+        detail = 'Metinde belirgin bir duygu ifadesi bulunamadı.';
+      } else {
+        const emotionTexts = translatedResults.map(emotion => 
+          `${emotion.label} (${emotion.intensity.toFixed(0)}%)`
+        );
+        detail = `Metinde ${emotionTexts.join(', ')} duyguları tespit edildi.`;
       }
 
-      if (!data || (Array.isArray(data) && data.length === 0)) {
-        throw new Error('Analiz sonucu alınamadı');
-      }
+      const formattedResponse = [{
+        emotions: translatedResults,
+        details: {
+          description: detail,
+          originalText: emotionText,
+          translatedText: translatedText,
+          rawEmotions: hfData[0]
+        }
+      }];
 
-      setEmotionResult(data);
+      setEmotionResult(formattedResponse);
       setShowEmotionPopup(true);
-    } catch (err) {
-      console.error('Duygu analizi hatası:', err);
+    } catch (error) {
+      console.error('Duygu analizi hatası:', error);
       setEmotionResult({ 
-        error: err.message || "Analiz başarısız oldu. Lütfen tekrar deneyin.",
-        details: err.details || "Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyin."
+        error: error.message || "Analiz başarısız oldu. Lütfen tekrar deneyin.",
+        details: "Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyin."
       });
       setShowEmotionPopup(true);
     } finally {
@@ -444,12 +647,20 @@ export default function Dashboard() {
         .from('emotions')
         .delete()
         .eq('id', id);
+      
       if (error) throw error;
-      setSavedEmotions((prev) => prev.filter((item) => item.id !== id));
-      if (selectedEmotion && selectedEmotion.id === id) setSelectedEmotion(null);
+      
+      // State'i güncelle
+      setSavedEmotions(prev => prev.filter(item => item.id !== id));
+      if (selectedEmotion && selectedEmotion.id === id) {
+        setSelectedEmotion(null);
+      }
+      
+      // Başarılı silme mesajı
+      alert('Kayıt başarıyla silindi');
     } catch (error) {
-      alert('Silme işlemi sırasında hata oluştu.');
       console.error('Silme hatası:', error);
+      alert('Silme işlemi sırasında hata oluştu.');
     }
   };
 
@@ -593,7 +804,21 @@ export default function Dashboard() {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
         <div className="bg-white rounded-xl p-8 shadow-2xl text-center max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-4 text-[#7c1fa0]">Duygu Analizi Sonucu</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-[#7c1fa0]">Duygu Analizi Sonucu</h2>
+            <button
+              onClick={() => {
+                setShowEmotionPopup(false);
+                setEmotionText('');
+              }}
+              className="text-[#7c1fa0] hover:text-[#ee00ee] transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
           {emotionResult?.error ? (
             <div className="text-red-500 mb-4">
               <p className="font-bold">{emotionResult.error}</p>
@@ -612,10 +837,15 @@ export default function Dashboard() {
             </div>
           ) : emotionResult && Array.isArray(emotionResult) && emotionResult.length > 0 ? (
             <div>
-              <div className="space-y-2 mb-6">
+              {emotionResult[0].emotions.length > 0 && (
+                <p className="text-lg font-semibold text-[#7c1fa0] mb-4">
+                  {emotionResult[0].emotions.length} Duygu Tespit Edildi:
+                </p>
+              )}
+              <div className="space-y-3 mb-6">
                 {emotionResult[0].emotions.map((emotion, index) => (
-                  <div key={index} className="text-lg bg-white/50 p-2 rounded-lg border border-[#ee00ee]/20">
-                    <p>
+                  <div key={index} className="bg-white/50 p-3 rounded-lg border border-[#ee00ee]/20">
+                    <p className="text-lg">
                       <span className="font-semibold text-[#7c1fa0]">Duygu:</span> {emotion.label}
                       <span className="mx-2">–</span>
                       <span className="font-semibold text-[#7c1fa0]">Oran:</span> {formatScore(emotion.score)}
@@ -629,14 +859,14 @@ export default function Dashboard() {
                     setShowEmotionPopup(false);
                     setEmotionText('');
                   }}
-                  className="px-6 py-2 bg-[#ee00ee] text-white rounded-lg hover:bg-[#7c1fa0] transition-colors"
+                  className="flex-1 px-6 py-2 bg-[#ee00ee] text-white rounded-lg hover:bg-[#7c1fa0] transition-colors"
                 >
                   Yeni Analiz
                 </button>
                 <button
                   onClick={handleSaveEmotion}
                   disabled={savingEmotion}
-                  className="px-6 py-2 bg-[#7c1fa0] text-white rounded-lg hover:bg-[#ee00ee] transition-colors disabled:opacity-60"
+                  className="flex-1 px-6 py-2 bg-[#7c1fa0] text-white rounded-lg hover:bg-[#ee00ee] transition-colors disabled:opacity-60"
                 >
                   {savingEmotion ? "Kaydediliyor..." : "Kaydet"}
                 </button>
@@ -663,34 +893,37 @@ export default function Dashboard() {
 
   function getEmotionColor(emotion) {
     const colors = {
-      'Mutluluk': '#FFD700',
-      'Üzüntü': '#4682B4',
-      'Öfke': '#FF4500',
-      'Korku': '#800080',
-      'Şaşkınlık': '#FF69B4',
-      'İğrenme': '#228B22',
-      'Nötr': '#808080',
-      'Sevgi': '#FF1493',
-      'Hayranlık': '#00CED1',
-      'Eğlence': '#FFA500',
-      'Rahatsızlık': '#A0522D',
-      'Onay': '#32CD32',
-      'İlgili': '#20B2AA',
-      'Kafa Karışıklığı': '#BA55D3',
-      'Merak': '#FF6347',
-      'İstek': '#FF4500',
-      'Hayal Kırıklığı': '#8B4513',
-      'Onaylamama': '#DC143C',
-      'Utangaçlık': '#FF69B4',
-      'Heyecan': '#FF4500',
-      'Minnettarlık': '#FFD700',
-      'Keder': '#4B0082',
-      'Gerginlik': '#FF4500',
-      'İyimserlik': '#32CD32',
-      'Gurur': '#FFD700',
-      'Farkındalık': '#00CED1',
-      'Rahatlık': '#98FB98',
-      'Pişmanlık': '#8B4513'
+  
+  'Mutluluk': '#FFD700',       // parlak altın sarısı
+  'Üzüntü': '#4682B4',         // soğuk çelik mavisi
+  'Öfke': '#FF4500',           // canlı turuncu-kırmızı
+  'Korku': '#800080',          // koyu mor
+  'Şaşkınlık': '#FF69B4',      // parlak pembe
+  'İğrenme': '#228B22',        // orman yeşili
+  'Nötr': '#808080',           // sade gri
+  'Sevgi': '#FF1493',          // sıcak pembe
+  'Hayranlık': '#00CED1',      // koyu turkuaz
+  'Eğlence': '#FFA500',        // canlı turuncu
+  'Rahatsızlık': '#A0522D',    // yoğun kahverengi
+  'Onay': '#32CD32',           // limon yeşili
+  'İlgili': '#20B2AA',         // açık deniz mavisi
+  'Kafa Karışıklığı': '#BA55D3', // orkide moru
+  'Merak': '#FF6347',          // domates kırmızısı
+  'İstek': '#FF8C00',          // koyu turuncu
+  'Hayal Kırıklığı': '#8B4513', // koyu kahverengi
+  'Onaylamama': '#DC143C',     // kiraz kırmızısı
+  'Utangaçlık': '#DB7093',     // soluk pembe
+  'Heyecan': '#FF6347',        // domates kırmızısı
+  'Minnettarlık': '#DAA520',   // altın kahverengi
+  'Keder': '#4B0082',          // çivit moru
+  'Gerginlik': '#B22222',      // ateş kırmızısı
+  'İyimserlik': '#00FF7F',     // yayla yeşili
+  'Gurur': '#FF7F50',          // mercan rengi
+  'Farkındalık': '#1E90FF',    // dodger blue
+  'Rahatlık': '#98FB98',       // soluk yeşil
+  'Pişmanlık': '#C71585'       // orta menekşe
+
+
     };
     return colors[emotion] || `hsl(${Math.random() * 360}, 70%, 50%)`;
   }
@@ -748,7 +981,8 @@ export default function Dashboard() {
         data: sorted.map(entry => {
           const arr = Array.isArray(entry.emotions) ? entry.emotions : [];
           const found = arr.find(e => e.label === label);
-          return found ? found.score * 100 : 0;
+          // Tek ondalık basamakla formatla
+          return found ? parseFloat((found.score * 100).toFixed(1)) : 0;
         }),
         backgroundColor: getEmotionColor(label),
         borderColor: getEmotionColor(label),
@@ -850,13 +1084,196 @@ export default function Dashboard() {
     };
   }
 
+  // GÜNCEL: Duygular için realtime subscription
+  useEffect(() => {
+    let channel;
+    let isMounted = true;
+
+    const setupRealtime = async () => {
+      try {
+        const userId = await getCurrentUserId();
+        if (!userId) {
+          console.error('Kullanıcı ID bulunamadı');
+          return;
+        }
+
+        // Önceki kanalı temizle
+        if (channel) {
+          await supabase.removeChannel(channel);
+        }
+
+        // Yeni kanal oluştur
+        channel = supabase
+          .channel('emotions-realtime')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'emotions',
+              filter: `user_id=eq.${userId}`
+            },
+            (payload) => {
+              console.log('Realtime değişiklik:', payload);
+              if (!isMounted) return;
+
+              // Silme işlemi
+              if (payload.eventType === 'DELETE') {
+                console.log('Silme işlemi algılandı:', payload.old.id);
+                setSavedEmotions(prev => prev.filter(item => item.id !== payload.old.id));
+                if (selectedEmotion && selectedEmotion.id === payload.old.id) {
+                  setSelectedEmotion(null);
+                }
+              }
+              // Ekleme işlemi
+              else if (payload.eventType === 'INSERT') {
+                console.log('Ekleme işlemi algılandı:', payload.new);
+                setSavedEmotions(prev => [payload.new, ...prev]);
+              }
+              // Güncelleme işlemi
+              else if (payload.eventType === 'UPDATE') {
+                console.log('Güncelleme işlemi algılandı:', payload.new);
+                setSavedEmotions(prev => 
+                  prev.map(item => item.id === payload.new.id ? payload.new : item)
+                );
+              }
+            }
+          )
+          .subscribe((status) => {
+            console.log('Subscription status:', status);
+            if (status === 'SUBSCRIBED') {
+              // İlk yükleme
+              fetchSavedEmotions();
+            }
+          });
+
+      } catch (error) {
+        console.error('Realtime subscription hatası:', error);
+      }
+    };
+
+    // Duygular sekmesi aktifse subscription'ı başlat
+    if (activeTab === 'emotions') {
+      setupRealtime();
+    }
+
+    // Cleanup
+    return () => {
+      isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [activeTab]);
+
+  // Günlük duygu değişim grafiği
+  const renderDailyEmotionChart = () => {
+    if (!dailyEmotions.length) return null;
+
+    const chartData = {
+      labels: dailyEmotions.map(e => {
+        const date = new Date(e.created_at);
+        return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      }),
+      datasets: [{
+        label: 'Duygu Değişimi',
+        data: dailyEmotions.map(e => e.intensity),
+        borderColor: '#4CAF50',
+        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const emotion = dailyEmotions[context.dataIndex];
+              return [
+                `Duygu: ${emotion.emotion_name}`,
+                `Yoğunluk: ${emotion.intensity}`,
+                `Not: ${emotion.note || 'Yok'}`
+              ];
+            }
+          }
+        },
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'x',
+            modifierKey: 'ctrl',
+          },
+          zoom: {
+            wheel: {
+              enabled: true,
+              modifierKey: 'ctrl',
+            },
+            pinch: {
+              enabled: true
+            },
+            mode: 'x',
+          },
+          limits: {
+            x: {min: 'original', max: 'original'}
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45
+          }
+        },
+        y: {
+          beginAtZero: true,
+          max: 10,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.1)'
+          }
+        }
+      },
+      interaction: {
+        mode: 'index',
+        intersect: false
+      }
+    };
+
+    return (
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <h3 className="text-lg font-semibold mb-4">Günlük Duygu Değişimi</h3>
+        <div className="relative" style={{ height: '300px' }}>
+          <Line data={chartData} options={options} />
+        </div>
+        <div className="mt-2 text-sm text-gray-500 text-center">
+          <p>Grafiği kaydırmak için CTRL tuşuna basılı tutarak fare tekerleğini kullanın</p>
+          <p>veya dokunmatik ekranda iki parmakla kaydırın</p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-[#ee00ee] to-[#7c1fa0] font-sans transition-colors duration-700 relative overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 flex flex-col items-center py-10 bg-white/90 shadow-2xl rounded-tr-3xl rounded-br-3xl animate-fade-in-left relative z-10">
-        <div className="mb-12">
+        <div className="mb-4">
           <span className="text-3xl font-extrabold text-[#ee00ee] tracking-wide drop-shadow-lg">MindMood</span>
         </div>
+        <img src={mindmoodLogo} alt="MindMood Logo" className="w-20 h-20 object-contain mb-8 rounded-full" />
         <nav className="flex flex-col gap-6 w-full mt-8">
           <SidebarIcon icon={<span role="img" aria-label="home" className="text-[#ee00ee]">🏠</span>} label="Ana Sayfa" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
           <SidebarIcon icon={<span role="img" aria-label="smile" className="text-[#ee00ee]">😊</span>} label="Duygularım" active={activeTab === 'emotions'} onClick={() => setActiveTab('emotions')} />
@@ -971,13 +1388,8 @@ export default function Dashboard() {
                 <div className="bg-white rounded-2xl p-8 border-2 border-[#ee00ee] shadow-2xl max-w-lg w-full relative">
                   <button
                     onClick={() => setSelectedEmotion(null)}
-                    className="absolute top-4 right-12 text-[#ee00ee] text-2xl font-bold hover:text-[#7c1fa0]"
+                    className="absolute top-4 right-4 text-[#ee00ee] text-2xl font-bold hover:text-[#7c1fa0]"
                   >×</button>
-                  <button
-                    onClick={() => handleDeleteEmotion(selectedEmotion.id)}
-                    className="absolute top-4 right-4 text-red-500 font-bold text-lg hover:text-red-700"
-                    title="Sil"
-                  >Sil</button>
                   <div className="text-2xl font-bold text-[#7c1fa0] mb-4">{new Date(selectedEmotion.created_at).toLocaleDateString('tr-TR')}</div>
                   <div className="text-base text-[#222] mb-4">{selectedEmotion.text}</div>
                   <div className="space-y-2">
@@ -1052,7 +1464,7 @@ export default function Dashboard() {
               </div>
               {/* Pie Chart Kartı */}
               <div className="w-full bg-white/90 rounded-2xl shadow-2xl p-8 border-2 border-[#ee00ee]">
-                <h3 className="text-xl font-bold text-[#7c1fa0] mb-4">Duygu Dağılımı (Pie Chart)</h3>
+                <h3 className="text-xl font-bold text-[#7c1fa0] mb-4">Duygu Dağılımı </h3>
                 <p className="text-sm text-gray-600 mb-4">
                   Seçili aralıktaki duyguların oranlarını pasta grafik olarak görebilirsiniz.
                 </p>
@@ -1112,66 +1524,40 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Günlük İstatistikleri */}
-            <div className="w-full max-w-xl bg-white/90 rounded-2xl shadow-2xl p-8 flex flex-col items-start mb-8 animate-fade-in-up border-2 border-[#ee00ee]">
-              <h2 className="text-2xl font-bold text-[#7c1fa0] mb-4">Günlük İstatistiklerim</h2>
-              <div className="grid grid-cols-2 gap-4 w-full">
-                <div className="bg-white/80 p-4 rounded-xl border-2 border-[#ee00ee]">
-                  <h3 className="text-lg font-bold text-[#7c1fa0] mb-2">Bu Ay</h3>
-                  <p className="text-3xl font-bold text-[#ee00ee]">{diaryList.filter(entry => {
-                    const date = new Date(entry.created_at);
-                    const now = new Date();
-                    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-                  }).length}</p>
-                  <p className="text-sm text-gray-600">Günlük Girişi</p>
-                </div>
-                <div className="bg-white/80 p-4 rounded-xl border-2 border-[#ee00ee]">
-                  <h3 className="text-lg font-bold text-[#7c1fa0] mb-2">Toplam</h3>
-                  <p className="text-3xl font-bold text-[#ee00ee]">{diaryList.length}</p>
-                  <p className="text-sm text-gray-600">Günlük Girişi</p>
-                </div>
-                <div className="bg-white/80 p-4 rounded-xl border-2 border-[#ee00ee]">
-                  <h3 className="text-lg font-bold text-[#7c1fa0] mb-2">En Uzun Seri</h3>
-                  <p className="text-3xl font-bold text-[#ee00ee]">7</p>
-                  <p className="text-sm text-gray-600">Gün</p>
-                </div>
-                <div className="bg-white/80 p-4 rounded-xl border-2 border-[#ee00ee]">
-                  <h3 className="text-lg font-bold text-[#7c1fa0] mb-2">Ortalama</h3>
-                  <p className="text-3xl font-bold text-[#ee00ee]">3</p>
-                  <p className="text-sm text-gray-600">Günlük/Hafta</p>
-                </div>
-              </div>
-            </div>
-
             {/* Günlük Listesi */}
-            {diaryList.map((entry, idx) => (
-              <div
-                key={entry.id || idx}
-                className="w-full max-w-xl bg-white/90 rounded-2xl shadow-2xl p-8 flex flex-col items-start mb-6 animate-fade-in-up border-2 border-[#ee00ee] cursor-pointer"
-                onClick={() => { setSelectedDiary(entry); setModalOpen(true); setEditMode(false); }}
-              >
-                <div className="flex w-full justify-between items-center mb-2">
-                  <div className="text-xl font-bold text-[#7c1fa0]">{new Date(entry.created_at).toLocaleDateString('tr-TR')}</div>
-                  <div className="flex gap-2">
-                    <button
-                      className="text-[#ee00ee] font-bold px-2 py-1 rounded hover:bg-[#ee00ee]/10"
-                      onClick={e => { e.stopPropagation(); handleEditDiary(entry); }}
-                    >Düzenle</button>
-                    <button
-                      className="text-red-500 font-bold px-2 py-1 rounded hover:bg-red-100"
-                      onClick={e => { e.stopPropagation(); handleDeleteDiary(entry.id); }}
-                    >Sil</button>
+            <div className="w-full max-w-xl space-y-4">
+              {diaryList.map((entry, idx) => (
+                <div
+                  key={entry.id || idx}
+                  className="w-full bg-white/90 rounded-2xl shadow-2xl p-8 flex flex-col items-start mb-6 animate-fade-in-up border-2 border-[#ee00ee] cursor-pointer"
+                  onClick={() => { setSelectedDiary(entry); setModalOpen(true); setEditMode(false); }}
+                >
+                  <div className="flex w-full justify-between items-center mb-2">
+                    <div className="text-xl font-bold text-[#7c1fa0]">{new Date(entry.created_at).toLocaleDateString('tr-TR')}</div>
+                    <div className="flex gap-2">
+                      <button
+                        className="text-[#ee00ee] font-bold px-2 py-1 rounded hover:bg-[#ee00ee]/10"
+                        onClick={e => { e.stopPropagation(); handleEditDiary(entry); }}
+                      >Düzenle</button>
+                      <button
+                        className="text-red-500 font-bold px-2 py-1 rounded hover:bg-red-100"
+                        onClick={e => { e.stopPropagation(); handleDeleteDiary(entry.id); }}
+                      >Sil</button>
+                    </div>
                   </div>
+                  <div className="text-base text-[#222] truncate" style={{width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{entry.content}</div>
                 </div>
-                <div className="text-base text-[#222] truncate" style={{width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{entry.content}</div>
-              </div>
-            ))}
+              ))}
+            </div>
 
             {/* Modal */}
             {modalOpen && selectedDiary && (
               <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
                 <div className="bg-white rounded-2xl shadow-2xl p-8 border-2 border-[#ee00ee] max-w-lg w-full relative">
-                  <button onClick={() => { setModalOpen(false); setEditMode(false); }} className="absolute top-4 right-4 text-[#ee00ee] text-2xl font-bold hover:text-[#7c1fa0]">×</button>
+                  <button 
+                    onClick={() => { setModalOpen(false); setEditMode(false); }} 
+                    className="absolute top-4 right-4 text-[#ee00ee] text-2xl font-bold hover:text-[#7c1fa0]"
+                  >×</button>
                   <div className="text-xl font-bold text-[#7c1fa0] mb-4">{new Date(selectedDiary.created_at).toLocaleDateString('tr-TR')}</div>
                   {editMode ? (
                     <>
@@ -1254,7 +1640,6 @@ export default function Dashboard() {
                     </>
                   )}
                 </button>
-                <button className="w-full px-4 py-2 bg-red-500 text-white rounded-lg font-bold">Tüm Verilerimi Sil</button>
               </div>
             </div>
 

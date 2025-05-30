@@ -49,25 +49,53 @@ async function translateToEnglish(text) {
   try {
     console.log('MyMemory Translation API isteği gönderiliyor...');
     
+    // API isteği için parametreler
+    const params = {
+      q: text,
+      langpair: 'tr|en',
+      de: 'mindmood@example.com' // API kullanımını takip etmek için email
+    };
+
+    // API isteği
     const response = await axios({
       method: 'get',
       url: MYMEMORY_URL,
-      params: {
-        q: text,
-        langpair: 'tr|en'
-      },
-      timeout: 10000 // 10 saniye timeout
+      params: params,
+      timeout: 10000, // 10 saniye timeout
+      headers: {
+        'Accept': 'application/json'
+      }
     });
 
     console.log('Çeviri yanıtı:', response.data);
     
+    // Yanıt kontrolü
     if (!response.data || !response.data.responseData || !response.data.responseData.translatedText) {
       throw new Error('Çeviri API geçersiz yanıt döndü');
+    }
+
+    // Çeviri kalitesi kontrolü
+    const match = response.data.responseData.match;
+    if (match < 0.5) {
+      console.warn('Düşük çeviri kalitesi:', match);
     }
 
     return response.data.responseData.translatedText;
   } catch (error) {
     console.error('Çeviri hatası:', error.message);
+    
+    // Hata durumlarına göre özel mesajlar
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Çeviri zaman aşımına uğradı. Lütfen tekrar deneyin.');
+    }
+    
+    if (error.response) {
+      if (error.response.status === 429) {
+        throw new Error('Çeviri API günlük limiti aşıldı. Lütfen daha sonra tekrar deneyin.');
+      }
+      throw new Error(`Çeviri API hatası: ${error.response.status}`);
+    }
+
     // Çeviri hatası durumunda orijinal metni döndür
     console.log('Çeviri başarısız, orijinal metin kullanılıyor:', text);
     return text;
